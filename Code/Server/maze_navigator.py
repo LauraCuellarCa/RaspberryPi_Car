@@ -1,127 +1,222 @@
 #!/usr/bin/env python3
-# maze_navigator.py - Maze navigation and path finding implementation
+# maze_navigator.py - Core navigation and path finding implementation
+# This module implements the A* path finding algorithm and provides the core
+# functionality for autonomous maze navigation, including movement control,
+# wall detection, and path reconstruction.
 
 import time
 import numpy as np
-from maze_config import CELL_CM, COLS, ROWS, WALL_THICKCM, START_CELL, EXIT_CELL, DX, DY
-from maze_calibration import load_calibration
+from maze_config import (
+    CELL_SIZE_CENTIMETERS,
+    MAZE_COLUMNS,
+    MAZE_ROWS,
+    WALL_THICKNESS_CENTIMETERS,
+    START_POSITION,
+    EXIT_POSITION,
+    X_AXIS_MOVEMENT,
+    Y_AXIS_MOVEMENT
+)
+from maze_calibration import load_calibration_settings
 
 class MazeNavigator:
+    """
+    Main navigation class that handles maze exploration and path finding.
+    Implements the A* algorithm for optimal path finding and provides
+    methods for physical movement control and wall detection.
+    """
+    
     def __init__(self):
-        """Initialize maze navigator with calibration data"""
-        self.calib = load_calibration()
-        self.initialize_hardware()
-        self.current_pose = (0, 0, 0)  # (x, y, direction)
-        self.visited = set()
-        self.walls = set()
+        """
+        Initialize the maze navigation system with calibration data
+        and set up initial state variables.
+        """
+        self.calibration_data = load_calibration_settings()
+        self.initialize_hardware_components()
+        self.current_position = (0, 0, 0)  # (x, y, direction)
+        self.visited_cells = set()
+        self.detected_walls = set()
         
-    def initialize_hardware(self):
-        """Initialize required hardware components"""
-        # Initialize motors, sensors, etc.
-        self.motor_speed = self.calib["BASE_SPEED"]
-        self.turn_speed = self.calib["TURN_SPEED"]
+    def initialize_hardware_components(self):
+        """
+        Initialize all required hardware components including motors and sensors.
+        Sets up initial motor speeds based on calibration data.
+        """
+        # Initialize motors, sensors, and other hardware components
+        self.forward_motor_speed = self.calibration_data["base_motor_speed"]
+        self.turn_motor_speed = self.calibration_data["turn_motor_speed"]
         
-    def solve_maze(self, start, exit):
-        """Find path from start to exit in the maze using A* algorithm"""
-        self.current_pose = (start[0], start[1], 0)  # Start facing north
-        self.visited = set()
-        self.walls = set()
+    def solve_maze(self, start_position, exit_position):
+        """
+        Find an optimal path through the maze using the A* algorithm.
         
-        # Implement A* path finding
-        open_set = {start}
-        came_from = {}
-        g_score = {start: 0}
-        f_score = {start: self.heuristic(start, exit)}
-        
-        while open_set:
-            current = min(open_set, key=lambda x: f_score.get(x, float('inf')))
-            if current == exit:
-                return self.reconstruct_path(came_from, current)
-                
-            open_set.remove(current)
-            self.visited.add(current)
+        Args:
+            start_position (tuple): Starting coordinates (x, y)
+            exit_position (tuple): Exit coordinates (x, y)
             
-            for neighbor in self.get_neighbors(current):
-                if neighbor in self.walls:
+        Returns:
+            list: Sequence of coordinates representing the path from start to exit,
+                  or None if no path is found
+        """
+        self.current_position = (start_position[0], start_position[1], 0)  # Start facing north
+        self.visited_cells = set()
+        self.detected_walls = set()
+        
+        # Initialize A* algorithm data structures
+        open_cells = {start_position}
+        path_predecessors = {}
+        movement_costs = {start_position: 0}
+        estimated_costs = {start_position: self.calculate_heuristic(start_position, exit_position)}
+        
+        while open_cells:
+            current_cell = min(open_cells, key=lambda x: estimated_costs.get(x, float('inf')))
+            if current_cell == exit_position:
+                return self.reconstruct_navigation_path(path_predecessors, current_cell)
+                
+            open_cells.remove(current_cell)
+            self.visited_cells.add(current_cell)
+            
+            for neighbor in self.get_adjacent_cells(current_cell):
+                if neighbor in self.detected_walls:
                     continue
                     
-                tentative_g_score = g_score[current] + 1
-                if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
-                    came_from[neighbor] = current
-                    g_score[neighbor] = tentative_g_score
-                    f_score[neighbor] = tentative_g_score + self.heuristic(neighbor, exit)
-                    if neighbor not in open_set:
-                        open_set.add(neighbor)
+                tentative_cost = movement_costs[current_cell] + 1
+                if neighbor not in movement_costs or tentative_cost < movement_costs[neighbor]:
+                    path_predecessors[neighbor] = current_cell
+                    movement_costs[neighbor] = tentative_cost
+                    estimated_costs[neighbor] = tentative_cost + self.calculate_heuristic(neighbor, exit_position)
+                    if neighbor not in open_cells:
+                        open_cells.add(neighbor)
                         
-        return None  # No path found
+        return None  # No valid path found
         
-    def heuristic(self, a, b):
-        """Calculate Manhattan distance between two points"""
-        return abs(a[0] - b[0]) + abs(a[1] - b[1])
+    def calculate_heuristic(self, current_cell, target_cell):
+        """
+        Calculate the Manhattan distance between two cells as the heuristic
+        for the A* algorithm.
         
-    def get_neighbors(self, pos):
-        """Get valid neighboring cells"""
-        neighbors = []
-        for dx, dy in zip(DX, DY):
-            new_x, new_y = pos[0] + dx, pos[1] + dy
-            if 0 <= new_x < COLS and 0 <= new_y < ROWS:
-                neighbors.append((new_x, new_y))
-        return neighbors
+        Args:
+            current_cell (tuple): Current position coordinates
+            target_cell (tuple): Target position coordinates
+            
+        Returns:
+            int: Manhattan distance between the cells
+        """
+        return abs(current_cell[0] - target_cell[0]) + abs(current_cell[1] - target_cell[1])
         
-    def reconstruct_path(self, came_from, current):
-        """Reconstruct the path from start to current position"""
-        path = [current]
-        while current in came_from:
-            current = came_from[current]
+    def get_adjacent_cells(self, position):
+        """
+        Get all valid neighboring cells from the current position.
+        
+        Args:
+            position (tuple): Current position coordinates
+            
+        Returns:
+            list: List of valid neighboring cell coordinates
+        """
+        adjacent_cells = []
+        for x_offset, y_offset in zip(X_AXIS_MOVEMENT, Y_AXIS_MOVEMENT):
+            new_x = position[0] + x_offset
+            new_y = position[1] + y_offset
+            if 0 <= new_x < MAZE_COLUMNS and 0 <= new_y < MAZE_ROWS:
+                adjacent_cells.append((new_x, new_y))
+        return adjacent_cells
+        
+    def reconstruct_navigation_path(self, path_predecessors, final_position):
+        """
+        Reconstruct the complete path from start to final position.
+        
+        Args:
+            path_predecessors (dict): Dictionary mapping each cell to its predecessor
+            final_position (tuple): Final position coordinates
+            
+        Returns:
+            list: Complete path from start to final position
+        """
+        path = [final_position]
+        current = final_position
+        while current in path_predecessors:
+            current = path_predecessors[current]
             path.append(current)
         return list(reversed(path))
         
     def move_forward(self):
-        """Move forward one cell"""
-        duration = self.calib["SEC_PER_CELL"]
-        # Move forward for duration
-        PWM.setMotorModel(self.motor_speed, self.motor_speed, 
-                         self.motor_speed, self.motor_speed)
-        time.sleep(duration)
+        """
+        Move the robot forward by one cell.
+        Updates the current position after movement.
+        """
+        movement_duration = self.calibration_data["seconds_per_cell"]
+        # Execute forward movement
+        PWM.setMotorModel(
+            self.forward_motor_speed,
+            self.forward_motor_speed,
+            self.forward_motor_speed,
+            self.forward_motor_speed
+        )
+        time.sleep(movement_duration)
         PWM.setMotorModel(0, 0, 0, 0)
         
-        # Update position
-        x, y, direction = self.current_pose
-        self.current_pose = (x + DX[direction], y + DY[direction], direction)
+        # Update position coordinates
+        x, y, direction = self.current_position
+        self.current_position = (
+            x + X_AXIS_MOVEMENT[direction],
+            y + Y_AXIS_MOVEMENT[direction],
+            direction
+        )
         
     def turn_left(self):
-        """Turn 90 degrees left"""
-        duration = self.calib["TURN_DURATION_90"]
-        # Turn left for duration
-        PWM.setMotorModel(-self.turn_speed, -self.turn_speed,
-                         self.turn_speed, self.turn_speed)
-        time.sleep(duration)
+        """
+        Execute a 90-degree left turn.
+        Updates the current direction after the turn.
+        """
+        turn_duration = self.calibration_data["turn_duration_90_degrees"]
+        # Execute left turn
+        PWM.setMotorModel(
+            -self.turn_motor_speed,
+            -self.turn_motor_speed,
+            self.turn_motor_speed,
+            self.turn_motor_speed
+        )
+        time.sleep(turn_duration)
         PWM.setMotorModel(0, 0, 0, 0)
         
         # Update direction
-        x, y, direction = self.current_pose
-        self.current_pose = (x, y, (direction - 1) % 4)
+        x, y, direction = self.current_position
+        self.current_position = (x, y, (direction - 1) % 4)
         
     def turn_right(self):
-        """Turn 90 degrees right"""
-        duration = self.calib["TURN_DURATION_90"]
-        # Turn right for duration
-        PWM.setMotorModel(self.turn_speed, self.turn_speed,
-                         -self.turn_speed, -self.turn_speed)
-        time.sleep(duration)
+        """
+        Execute a 90-degree right turn.
+        Updates the current direction after the turn.
+        """
+        turn_duration = self.calibration_data["turn_duration_90_degrees"]
+        # Execute right turn
+        PWM.setMotorModel(
+            self.turn_motor_speed,
+            self.turn_motor_speed,
+            -self.turn_motor_speed,
+            -self.turn_motor_speed
+        )
+        time.sleep(turn_duration)
         PWM.setMotorModel(0, 0, 0, 0)
         
         # Update direction
-        x, y, direction = self.current_pose
-        self.current_pose = (x, y, (direction + 1) % 4)
+        x, y, direction = self.current_position
+        self.current_position = (x, y, (direction + 1) % 4)
         
     def detect_wall(self):
-        """Detect if there's a wall in front"""
+        """
+        Detect if there is a wall in front of the robot.
+        
+        Returns:
+            bool: True if a wall is detected, False otherwise
+        """
         # Implement wall detection using sensors
         # For now, return False (no wall)
         return False
         
     def cleanup(self):
-        """Clean up resources"""
+        """
+        Clean up system resources and ensure motors are stopped.
+        """
         PWM.setMotorModel(0, 0, 0, 0)
-        # Close any other connections 
+        # Close any other hardware connections 

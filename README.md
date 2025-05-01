@@ -1,14 +1,25 @@
-# Raspberry Pi Car - Maze Solver
+# Raspberry Pi Car - Maze Solver (RasCar)
 
-This project implements an autonomous maze-solving car using a Raspberry Pi. The car is designed to navigate through a physical maze, using sensors to detect walls and line following to maintain its position.
+This project implements an autonomous maze-solving car using a Raspberry Pi. The car is designed to navigate through a physical maze, using sensors to detect walls and line following to maintain its position. The system combines line following capabilities with an A* pathfinding algorithm to efficiently solve mazes.
 
 ## Project Overview
 
-The system consists of several key components:
-- A Raspberry Pi-based car with line following sensors
-- Maze navigation algorithms
-- Calibration tools for precise movement
-- Configuration management for maze parameters
+The RasCar is a Raspberry Pi-powered autonomous vehicle designed for line following and maze-solving competitions. The system combines hardware components with sophisticated software algorithms to achieve autonomous navigation.
+
+### Hardware Components
+- Raspberry Pi (main controller)
+- Motor drivers and wheels
+- Servos for sensor positioning
+- Ultrasonic sensors for wall detection
+- Color sensor for line following
+- Chassis and power system
+
+### Software Architecture
+- Line following logic with real-time trajectory adjustment
+- Collision detection and avoidance system
+- A* pathfinding algorithm with Manhattan Distance heuristic
+- Dynamic maze mapping and exploration
+- Real-time sensor data processing
 
 ## Key Components
 
@@ -26,12 +37,25 @@ The system consists of several key components:
 - Exit position: (9,0) - marked with green arrow
 
 ## Features
-- Autonomous maze solving
-- Line following capabilities
-- Wall detection and avoidance
+
+### Navigation Capabilities
+- Autonomous maze solving using A* algorithm
+- Line following with real-time trajectory adjustment
+- Multi-directional wall detection (front, left, right)
+- Dynamic maze mapping and exploration
+- Real-time path optimization
+
+### Sensor Integration
+- Ultrasonic sensor scanning in three directions
+- Color sensor calibration for line detection
+- Real-time sensor data processing
+- Collision avoidance system
+
+### Movement Control
 - Precise movement calibration
-- Configurable navigation parameters
-- Debug logging and monitoring
+- Four-directional movement control
+- Speed and acceleration management
+- Turn radius optimization
 
 ## Usage
 
@@ -46,26 +70,38 @@ Before running the maze solver, it's recommended to calibrate the car:
 python3 maze_runner.py --calibrate
 ```
 
-## Configuration
-The `maze_config.py` file contains all configurable parameters:
-- Movement speeds and acceleration
-- Sensor configurations
-- Navigation tolerances
-- Debug settings
-- Competition parameters
+The calibration process includes:
+- Movement timing calibration
+- Sensor threshold adjustment
+- Line following calibration
+- Turn radius optimization
+
+## Implementation Details
+
+### Navigation Strategy
+1. Initial exploration phase to map the maze
+2. Dynamic grid representation (10×5) for efficient storage
+3. A* pathfinding with Manhattan Distance heuristic
+4. Real-time wall detection and path adjustment
+5. Backtracking for complete maze exploration
+
+### Sensor Configuration
+- Ultrasonic sensor sampling rate optimization
+- Color sensor threshold calibration
+- Multi-angle scanning for wall detection
+- Real-time sensor data processing
 
 ## Requirements
 - Raspberry Pi (compatible model)
 - Line following sensors
 - Motor controllers
+- Ultrasonic sensors
+- Servo motors
 - Python 3.x
 - Required Python packages (list dependencies here)
 
-## License
-This project is licensed under the terms specified in the LICENSE.txt file.
-
-## Contributing
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Acknowledgments
-- [Add any acknowledgments or references here]
+## Known Challenges and Solutions
+- Hardware integration and stability
+- Sensor calibration and threshold optimization
+- Real-time path planning with noisy sensor data
+- Movement precision and timing calibration

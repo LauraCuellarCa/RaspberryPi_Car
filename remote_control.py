@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# remote_control.py - Remote control the car using command line input
+# remote_control.py - Remote control interface for the maze navigation car
+# This module provides a command-line interface for manually controlling the car,
+# recording movements, and saving them for later playback or analysis.
 
 import sys
 import time
@@ -8,13 +10,21 @@ from datetime import datetime
 from Motor import *
 
 class RemoteControl:
+    """
+    Remote control interface for the maze navigation car.
+    Provides manual control capabilities and movement recording functionality.
+    """
+    
     def __init__(self):
-        # Movement speeds
-        self.FORWARD_SPEED = 800
-        self.BACKWARD_SPEED = 1500
-        self.TURN_SPEED = 2000
+        """
+        Initialize the remote control system with movement speeds and command mappings.
+        """
+        # Movement speed parameters
+        self.FORWARD_MOTOR_SPEED = 800
+        self.BACKWARD_MOTOR_SPEED = 1500
+        self.TURN_MOTOR_SPEED = 2000
         
-        # Command mapping
+        # Command mapping for keyboard input
         self.commands = {
             'w': 'forward',
             's': 'backward',
@@ -27,13 +37,19 @@ class RemoteControl:
             'q': 'quit'
         }
         
-        # Movement recording
+        # Movement recording configuration
         self.movement_history = []
         self.last_command_time = None
         self.recording_file = f"movement_recording_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         
-    def record_movement(self, cmd, motor_speeds):
-        """Record a movement with timestamp and motor speeds"""
+    def record_movement(self, command, motor_speeds):
+        """
+        Record a movement with timestamp and motor speeds.
+        
+        Args:
+            command (str): The command that triggered the movement
+            motor_speeds (list): List of motor speeds for each wheel
+        """
         current_time = time.time()
         duration = 0
         if self.last_command_time is not None:
@@ -41,7 +57,7 @@ class RemoteControl:
         
         movement = {
             'timestamp': datetime.now().isoformat(),
-            'command': cmd,
+            'command': command,
             'motor_speeds': motor_speeds,
             'duration': duration
         }
@@ -72,36 +88,36 @@ class RemoteControl:
         try:
             motor_speeds = None
             if cmd == 'forward':
-                motor_speeds = [self.FORWARD_SPEED, self.FORWARD_SPEED, 
-                              self.FORWARD_SPEED, self.FORWARD_SPEED]
+                motor_speeds = [self.FORWARD_MOTOR_SPEED, self.FORWARD_MOTOR_SPEED, 
+                              self.FORWARD_MOTOR_SPEED, self.FORWARD_MOTOR_SPEED]
                 PWM.setMotorModel(*motor_speeds)
             elif cmd == 'backward':
-                motor_speeds = [-self.BACKWARD_SPEED, -self.BACKWARD_SPEED,
-                              -self.BACKWARD_SPEED, -self.BACKWARD_SPEED]
+                motor_speeds = [-self.BACKWARD_MOTOR_SPEED, -self.BACKWARD_MOTOR_SPEED,
+                              -self.BACKWARD_MOTOR_SPEED, -self.BACKWARD_MOTOR_SPEED]
                 PWM.setMotorModel(*motor_speeds)
             elif cmd == 'left':
-                motor_speeds = [-self.TURN_SPEED, -self.TURN_SPEED,
-                              self.TURN_SPEED, self.TURN_SPEED]
+                motor_speeds = [-self.TURN_MOTOR_SPEED, -self.TURN_MOTOR_SPEED,
+                              self.TURN_MOTOR_SPEED, self.TURN_MOTOR_SPEED]
                 PWM.setMotorModel(*motor_speeds)
             elif cmd == 'right':
-                motor_speeds = [self.TURN_SPEED, self.TURN_SPEED,
-                              -self.TURN_SPEED, -self.TURN_SPEED]
+                motor_speeds = [self.TURN_MOTOR_SPEED, self.TURN_MOTOR_SPEED,
+                              -self.TURN_MOTOR_SPEED, -self.TURN_MOTOR_SPEED]
                 PWM.setMotorModel(*motor_speeds)
             elif cmd == 'forward_left':
-                motor_speeds = [-self.TURN_SPEED, -self.TURN_SPEED,
-                              self.FORWARD_SPEED, self.FORWARD_SPEED]
+                motor_speeds = [-self.TURN_MOTOR_SPEED, -self.TURN_MOTOR_SPEED,
+                              self.FORWARD_MOTOR_SPEED, self.FORWARD_MOTOR_SPEED]
                 PWM.setMotorModel(*motor_speeds)
             elif cmd == 'forward_right':
-                motor_speeds = [self.FORWARD_SPEED, self.FORWARD_SPEED,
-                              -self.TURN_SPEED, -self.TURN_SPEED]
+                motor_speeds = [self.FORWARD_MOTOR_SPEED, self.FORWARD_MOTOR_SPEED,
+                              -self.TURN_MOTOR_SPEED, -self.TURN_MOTOR_SPEED]
                 PWM.setMotorModel(*motor_speeds)
             elif cmd == 'backward_left':
-                motor_speeds = [-self.BACKWARD_SPEED, -self.BACKWARD_SPEED,
-                              self.TURN_SPEED, self.TURN_SPEED]
+                motor_speeds = [-self.BACKWARD_MOTOR_SPEED, -self.BACKWARD_MOTOR_SPEED,
+                              self.TURN_MOTOR_SPEED, self.TURN_MOTOR_SPEED]
                 PWM.setMotorModel(*motor_speeds)
             elif cmd == 'backward_right':
-                motor_speeds = [self.TURN_SPEED, self.TURN_SPEED,
-                              -self.BACKWARD_SPEED, -self.BACKWARD_SPEED]
+                motor_speeds = [self.TURN_MOTOR_SPEED, self.TURN_MOTOR_SPEED,
+                              -self.BACKWARD_MOTOR_SPEED, -self.BACKWARD_MOTOR_SPEED]
                 PWM.setMotorModel(*motor_speeds)
             elif cmd == 'stop':
                 motor_speeds = [0, 0, 0, 0]
